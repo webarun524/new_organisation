@@ -37,6 +37,3 @@ def test_copy_bearer_token_to_clipboard(
     )
 
     logger.info("Bearer token successfully copied to clipboard")
-    logger.info("Bearer token successfully copied to clipboard")
-    logger.info("Bearer token successfully copied to clipboard")
-    logger.info("Bearer token successfully copied to clipboard")

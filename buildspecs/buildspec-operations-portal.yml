@@ -1,0 +1,66 @@
+---
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - echo "========== OPERATIONS PORTAL TESTS BUILDSPEC =========="
+      - echo "Current working directory:"
+      - pwd
+      - echo "Listing CodeBuild working directory:"
+      - ls -lah
+      - echo "Environment variables:"
+      - env | sort
+      - echo "========== VERIFYING SOURCE FILES =========="
+      - ls -lah
+      - test -d e2e && echo "e2e directory found!" || (echo "e2e directory NOT FOUND"; exit 1)
+      - echo "PIP version:"
+      - pip --version
+      - echo "========== INSTALLING DEPENDENCIES =========="
+      - pip install -v -r e2e/requirements.txt
+      - playwright install --with-deps
+
+  build:
+    commands:
+      - echo "========== PREPARING REPORTS DIRECTORY =========="
+      - mkdir -p reports
+      - test -d e2e/tests/ && echo "Test directory found!" || (echo "Test directory NOT found"; find . -type d -name "tests" | head -10)
+      - echo "========== RUNNING OPERATIONS PORTAL TESTS =========="
+      - export PYTHONPATH=".:${PYTHONPATH}"
+      - |
+          TEST_EXIT_CODE=0
+
+          pytest e2e/tests/ -m "operations_portal" -v \
+            --json-report \
+            --json-report-file=reports/report.json \
+            --json-report-indent=4 || TEST_EXIT_CODE=$?
+
+          echo "Pytest exit code: $TEST_EXIT_CODE"
+
+          echo "========== EXTRACTING VALUES FROM OUTPUTS.JSON =========="
+
+          if [ -f reports/outputs.json ]; then
+              DEPLOYMENT_ID=$(python -c "import json; print(json.load(open('reports/outputs.json')).get('deploymentId'))" 2>/dev/null || echo "")
+              WORKLOAD_VERSION=$(python -c "import json; print(json.load(open('reports/outputs.json')).get('workloadVersion'))" 2>/dev/null || echo "")
+          else
+              DEPLOYMENT_ID=""
+              WORKLOAD_VERSION=""
+              TEST_EXIT_CODE=1
+          fi
+
+          export DEPLOYMENT_ID WORKLOAD_VERSION
+
+          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID"
+          echo "WORKLOAD_VERSION=$WORKLOAD_VERSION"
+
+          echo "========== UPLOADING REPORTS TO S3 and DynamoDB =========="
+          python e2e/upload_reports.py "$EXECUTION_ID" "$REPORTS_S3_BUCKET" "operations_portal" "$EXECUTION_RECORD_LAMBDA_NAME"
+
+          echo "========== OPERATIONS PORTAL TESTS COMPLETED =========="
+          exit $TEST_EXIT_CODE
+
+cache:
+  paths:
+    - "/root/.cache/pip/**/*"

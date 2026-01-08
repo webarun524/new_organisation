@@ -1,0 +1,42 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.3
+    hooks:
+      - id: ruff-check
+        args: [ --fix ]
+      - id: ruff-format
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.103.0
+    hooks:
+    - id: terraform_fmt
+      files: infra/terraform/
+      args:
+        - --args=-recursive
+    - id: terraform_validate
+      files: infra/terraform/
+      args:
+        - --tf-init-args=-backend=false
+        - --hook-config=--retry-once-with-cleanup=true
+    - id: terraform_providers_lock
+      args:
+        - --hook-config=--mode=only-check-is-current-lockfile-cross-platform
+        - --tf-init-args=-backend=false
+        - --args=-platform=linux_amd64
+        - --args=-platform=darwin_arm64
+        - --args=-platform=windows_amd64
+    - id: terraform_tflint
+      files: infra/terraform/
+      args:
+        - --hook-config=--delegate-chdir
+        - --hook-config=--recursive

@@ -1,0 +1,61 @@
+[project]
+name = "edi-e2e-tests"
+version = "0.27.0"
+description = ""
+authors = [
+    {name = "Łukasz Broda",email = "lukasz.broda@hitachids.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "boto3 (>=1.41.0,<2.0.0)",
+    "boto3-stubs[dynamodb] (>=1.41.1,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "jinja2 (>=3.1.6,<4.0.0)",
+    "mypy-boto3-secretsmanager (>=1.41.0,<2.0.0)",
+    "mypy-boto3-ssm (>=1.41.0,<2.0.0)",
+    "mypy-boto3-sts (>=1.41.0,<2.0.0)",
+    "playwright (>=1.55.0,<2.0.0)",
+    "pydantic (>=2.12.3,<3.0.0)",
+    "pynamodb (>=6.1.0,<7.0.0)",
+    "pytest-json-report (>=1.5.0,<2.0.0)",
+    "pytest-playwright (>=0.7.1,<0.8.0)",
+    "pytest-rerunfailures (>=16.1,<17.0)",
+    "validators (>=0.35.0,<0.36.0)",
+    "mypy-boto3-s3 (>=1.42.10,<2.0.0)"
+]
+
+[tool.poetry]
+packages = [
+    {include = "e2e"},
+    {include = "lambdas", from = "src"}
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # Error, Pyflakes, Warnings, isort
+ignore = ["E501"]  # Ignore line too long (formatter handles this)
+
+[tool.ruff.format]
+quote-style = "double"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pre-commit (>=4.3.0,<5.0.0)",
+    "commitizen (>=4.9.1,<5.0.0)",
+    "ruff (>=0.14.3,<0.15.0)",
+    "pytest (>=8.4.2,<9.0.0)",
+    "aws-lambda-powertools (>=3.22.0,<4.0.0)",
+    "pytest-asyncio (>=1.2.0,<2.0.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)",
+    "playwright (>=1.56.0,<2.0.0)",
+    "moto (>=5.1.17,<6.0.0)",
+    "email-validator (>=2.3.0,<3.0.0)",
+]

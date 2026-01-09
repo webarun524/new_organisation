@@ -1,0 +1,221 @@
+image: python:3.13.9-trixie
+
+options:
+  max-time: 60
+  size: 2x
+
+definitions:
+  caches:
+    poetry: ~/.cache/pypoetry
+    poetry-install: /root/.local
+    terraform-tools: .terraform-cache
+    venv: .venv
+
+  steps:
+    - step: &setup
+        name: Setup Environment
+        caches:
+          - pip
+          - poetry
+          - poetry-install
+          - terraform-tools
+          - venv
+        script:
+          - export POETRY_HOME=/root/.local
+          - export PATH="$POETRY_HOME/bin:$PATH"
+
+          # Install Poetry
+          - |
+            if ! command -v poetry &>/dev/null; then
+              echo "Installing Poetry..."
+              bash buildscripts/install-poetry.sh
+            else
+              echo "Poetry already installed (cached)"
+              poetry --version
+            fi
+
+          # Install dependencies
+          - poetry config virtualenvs.in-project true
+          - poetry lock
+          - poetry install --with dev
+
+          # Reuse Terraform/TFLint if cached
+          - mkdir -p .terraform-cache/bin
+          - export PATH="$(pwd)/.terraform-cache/bin:$PATH"
+
+          - |
+            if ! command -v terraform &>/dev/null || ! command -v tflint &>/dev/null; then
+              echo "Installing Terraform and TFLint..."
+              ./buildscripts/install-terraform.sh
+              cp ~/.local/bin/terraform .terraform-cache/bin/ || true
+              cp ~/.local/bin/tflint .terraform-cache/bin/ || true
+            else
+              echo "Terraform and TFLint found in cache"
+              terraform version
+              tflint --version
+            fi
+
+        artifacts:
+          - .terraform-cache/bin/**
+
+    - step: &quality-checks
+        name: Quality Checks
+        caches:
+          - pip
+          - poetry
+          - poetry-install
+          - terraform-tools
+          - venv
+        script:
+          - export POETRY_HOME=/root/.local
+          - export PATH="$POETRY_HOME/bin:$(pwd)/.terraform-cache/bin:$PATH"
+          - ./buildscripts/quality.sh
+
+    - step: &tests
+        name: Unit Tests
+        caches:
+          - pip
+          - poetry
+          - poetry-install
+          - venv
+        script:
+          # Setup Poetry path
+          - export POETRY_HOME=/root/.local
+          - export PATH="$POETRY_HOME/bin:$PATH"
+          # Run tests
+          - poetry run pytest tests -v
+
+    - step: &changelog-check
+        name: Changelog Check
+        caches:
+          - pip
+        script:
+          - pip install commitizen
+          - export CURRENT_VERSION=$(cat VERSION)
+          - |
+            if ! grep -iq "## v$CURRENT_VERSION" CHANGELOG.md; then
+              echo "ERROR: CHANGELOG.md missing latest version entry (v$CURRENT_VERSION)."
+              exit 1
+            fi
+
+          - export CZ_VERSION=$(cz version -p)
+          - |
+            if [ "$CZ_VERSION" != "$CURRENT_VERSION" ]; then
+              echo "ERROR: Version mismatch! .cz.toml ($CZ_VERSION) != VERSION ($CURRENT_VERSION)"
+              exit 1
+            fi
+
+          - export TARGET_BRANCH="${BITBUCKET_PR_DESTINATION_BRANCH:-main}"
+          - git fetch --depth=1 origin "$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH"
+          - git show "origin/$TARGET_BRANCH:VERSION" > /tmp/previous_version.txt
+          - export PREVIOUS_VERSION=$(cat /tmp/previous_version.txt)
+          - echo "Previous version - $PREVIOUS_VERSION"
+          - echo "Current version - $CURRENT_VERSION"
+
+          - |
+            if [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+              echo "ERROR: A version bump is required but missing."
+              exit 1
+            fi
+
+    - step: &update-version
+        name: Tag Version
+        script:
+          - export CURRENT_VERSION=$(cat VERSION)
+          - git tag "v$CURRENT_VERSION"
+          - git push origin --tags
+
+  trigger_sfn_orchestrator: &trigger_sfn_orchestrator
+    name: Trigger sfn orchestrator
+    oidc: true
+    caches:
+      - pip
+    script:
+      # install aws cli
+      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip awscliv2.zip
+      - ./aws/install
+      # configure aws credentials using oidc
+      - export AWS_ROLE_ARN=arn:aws:iam::${AWS_ACCOUNT_ID}:role/edi-e2e-tests-bitbucket-sfn-exec-role
+      - export AWS_WEB_IDENTITY_TOKEN_FILE=/tmp/web_identity_token
+      - echo $BITBUCKET_STEP_OIDC_TOKEN > $AWS_WEB_IDENTITY_TOKEN_FILE
+      # debug oidc token
+      - echo "OIDC Token Payload:"
+      - echo "$BITBUCKET_STEP_OIDC_TOKEN" | awk -F. '{print $2}' | base64 -d
+      # prepare payload of sfn
+      - |
+        to_bool() {
+          if [ "$1" = "True" ]; then echo "true"; else echo "false"; fi
+        }
+        SFN_INPUT_PAYLOAD="$(cat <<EOF
+        {
+            "EnterpriseProductTypeActive": $(to_bool "$ENTERPRISE_PRODUCT"),
+            "OsduVersion": "$OSDU_VERSION",
+            "ExecutionSource": "BitbucketPipeline-${BITBUCKET_BUILD_NUMBER}",
+            "SkipEnvSetup": $(to_bool "$SKIP_ENV_SETUP"),
+            "DataPortalAccountId": "$DATA_PORTAL_ACCOUNT_ID",
+            "DeploymentRoleName": "$DEPLOYMENT_ROLE_NAME",
+            "DataPortalDomain": "$DATA_PORTAL_DOMAIN",
+            "DataPortalHostedZoneId": "$DATA_PORTAL_HOSTED_ZONE_ID",
+            "DryRun": $(to_bool "$DRY_RUN"),
+            "BackplaneTargetBranchName" : "${BACKPLANE_TARGET_BRANCH_NAME:-release/edi-enterprise-v1.2.1}",
+            "TeardownTriggerActive": $(to_bool "$TEARDOWN_TRIGGER_ACTIVE")
+        }
+        EOF
+        )"
+      # start execution
+      - aws stepfunctions start-execution --state-machine-arn $SFN_ARN --name "BB-Pipeline-${BITBUCKET_BUILD_NUMBER}-$(date +%s)" --input "$SFN_INPUT_PAYLOAD" --region $AWS_REGION
+
+pipelines:
+  branches:
+    main:
+      - step: *setup
+      - step: *update-version
+      - parallel:
+          - step: *quality-checks
+          - step: *tests
+    "{feature/*,fix/*,hotfix/*,bugfix/*,release/*}":
+      - step: *setup
+      - parallel:
+          - step: *quality-checks
+          - step: *tests
+          - step: *changelog-check
+
+  custom:
+    trigger_tests:
+      - variables:
+          - name: ENTERPRISE_PRODUCT
+            allowed-values:
+              - "False"
+              - "True"
+            default: "True"
+          - name: SKIP_ENV_SETUP
+            allowed-values:
+              - "False"
+              - "True"
+            default: "False"
+          - name: OSDU_VERSION
+            allowed-values:
+              - "r3m25"
+              - "r3m24"
+              - "r3m23"
+            default: "r3m25"
+          - name: DEPLOYMENT_ROLE_NAME
+            default: "edi-e2e-tests-custom-fulfillment-role"
+          - name: DATA_PORTAL_DOMAIN
+          - name: DATA_PORTAL_HOSTED_ZONE_ID
+          - name: DATA_PORTAL_ACCOUNT_ID
+            pattern: '^\d{12}$'
+          - name: DRY_RUN
+            allowed-values:
+              - "False"
+              - "True"
+            default: "False"
+          - name: BACKPLANE_TARGET_BRANCH_NAME
+            default: "release/edi-enterprise-v1.2.1"
+          - name: TEARDOWN_TRIGGER_ACTIVE
+            allowed-values:
+              - "False"
+              - "True"
+            default: "True"
+      - step: *trigger_sfn_orchestrator

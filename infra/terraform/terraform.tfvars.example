@@ -1,0 +1,10 @@
+bitbucket_token             = "access_token to dataops/deployments"
+deployment_environment_code = "proto||proto2||proto3||dev||qa||preprod||utility||edi-qa||customer-prod"
+#? temporary - until backplane TF stacks merge
+backplane_account_id        = "<AWS account id>"
+
+bitbucket_audience = "ari:cloud:bitbucket::workspace/<uuid>>"
+bitbucket_thumbprint = "<thumbprint>"
+bitbucket_subjects = [
+  "{<uuid>}:*"
+]

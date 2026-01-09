@@ -1,0 +1,506 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Report: E2E Execution</title>
+    <style type="text/css">
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f7f7f7;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      img {
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+      }
+      a {
+        color: #043d6d;
+        text-decoration: none;
+      }
+      .content {
+        padding: 30px 20px;
+      }
+      .header-bar {
+        background-color: #043d6d;
+        padding: 20px 0;
+      }
+      .footer-text {
+        color: #aaaaaa;
+        font-size: 10px;
+        line-height: 18px;
+      }
+    </style>
+  </head>
+
+  <body style="margin: 0; padding: 0; background-color: #f7f7f7">
+    <table
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+      style="border-collapse: collapse; background-color: #f7f7f7"
+    >
+      <tr>
+        <td align="center" style="padding: 0 0 30px 0">
+          <table
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            width="600"
+            style="
+              border-collapse: collapse;
+              background-color: #ffffff;
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            "
+          >
+            <tr>
+              <td
+                class="header-bar"
+                align="center"
+                style="background-color: #043d6d; padding: 20px 30px"
+              >
+                <img
+                  alt="47Lining logo"
+                  src="https://www.47lining.com/wordpress/wp-content/uploads/2023/10/47L-Website-Logo-White.png"
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                class="content"
+                style="
+                  padding: 30px 40px;
+                  border-left: 1px solid #eeeeee;
+                  border-right: 1px solid #eeeeee;
+                "
+              >
+                <table
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  width="100%"
+                  style="border-collapse: collapse"
+                >
+                  <tr>
+                    <td
+                      style="
+                        color: #161d26;
+                        font-family: Arial, sans-serif;
+                        font-size: 24px;
+                        font-weight: bold;
+                        padding: 0 0 10px 0;
+                      "
+                    >
+                      E2E Execution Report
+                    </td>
+                  </tr>
+                  <tr
+                    style="
+                      display: flex;
+                      gap: 40px;
+                      align-items: center;
+                      justify-content: space-between;
+                    ">
+                    <td
+                      style="
+                        color: #043d6d;
+                        font-family: Arial, sans-serif;
+                        font-size: 16px;
+                        padding: 0 0 20px 0;
+                      "
+                    >
+                      <p
+                        style="
+                          color: #161d26;
+                          font-family: Arial, sans-serif;
+                          font-size: 12px;
+                          margin: 0 0 4px 0;
+                        "
+                      >
+                        Execution started:
+                      </p>
+                      <p style="padding: 0; margin: 0">
+                        <strong>{{ CreatedAt }}</strong>
+                      </p>
+                    </td>
+                    <td
+                      style="
+                        color: #043d6d;
+                        font-family: Arial, sans-serif;
+                        font-size: 16px;
+                        padding: 0 0 20px 0;
+                      "
+                    >
+                      <p
+                        style="
+                          color: #161d26;
+                          font-family: Arial, sans-serif;
+                          font-size: 12px;
+                          margin: 0 auto 0;
+                        "
+                      >
+                        Execution ended:
+                      </p>
+                      <p style="padding: 0; margin: 0">
+                        <strong>{{ UpdatedAt }}</strong>
+                      </p>
+                    </td>
+                    <td
+                      style="
+                        color: #043d6d;
+                        font-family: Arial, sans-serif;
+                        font-size: 16px;
+                        padding: 0 0 20px 0;
+                        margin: 0 auto;
+                      "
+                    >
+                      <p
+                        style="
+                          color: #161d26;
+                          font-family: Arial, sans-serif;
+                          font-size: 12px;
+                          margin: 0 0 4px 0;
+                        "
+                      >
+                        Duration:
+                      </p>
+                      <p style="padding: 0; margin: 0">
+                        <strong>{{ duration if duration else "N/A" }}</strong>
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding: 0 0 20px 0">
+                      <h3
+                        style="
+                          color: #043d6d;
+                          font-family: Arial, sans-serif;
+                          font-size: 18px;
+                          margin: 0 0 5px 0;
+                          border-bottom: 2px solid #eeeeee;
+                          padding-bottom: 5px;
+                        "
+                      >
+                        Summary
+                      </h3>
+                      <p
+                        style="
+                          color: #161d26;
+                          font-family: Arial, sans-serif;
+                          font-size: 24px;
+                          line-height: 22px;
+                          margin: 0 0 8px 0;
+                        "
+                      >
+                        Final status: <strong>{{ Status }}</strong>
+                      </p>
+                      {% if failure_reason %}
+                      <p
+                        style="
+                          color: #d32f2f;
+                          font-family: Arial, sans-serif;
+                          font-size: 12px;
+                          line-height: 22px;
+                          margin: 0;
+                        "
+                      >
+                        <strong>Failure Reason:</strong> {{ FailureReason }}
+                      </p>
+                      {% endif %}
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding: 20px 0 20px 0">
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Report ID
+                        </p>
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          {{ Id }}
+                        </p>
+                      </div>
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Deployment ID
+                        </p>
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          {{ DeploymentId if DeploymentId else "N/A" }}
+                        </p>
+                      </div>
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Workload Version
+                        </p>
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          {{ WorkloadVersion if WorkloadVersion else "N/A" }}
+                        </p>
+                      </div>
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Deployed Services
+                        </p>
+                        {% if DeployedServices %}
+                        <ul style="color: #043d6d; font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding-left: 20px">
+                          {% for service, commit in DeployedServices.items() %}
+                          <li>{{ service }}: <strong>{{ commit }}</strong></li>
+                          {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          N/A
+                        </p>
+                        {% endif %}
+                      </div>
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Operations Portal Test Report
+                        </p>
+                        {% if SubscriptionTestReportUrl %}
+                        <a
+                          href="{{ SubscriptionTestReportUrl }}"
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          View Report
+                        </a>
+                        {% else %}
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          N/A
+                        </p>
+                        {% endif %}
+                      </div>
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Data Portal Test Report
+                        </p>
+                        {% if VerificationTestReportUrl %}
+                        <a
+                          href="{{ VerificationTestReportUrl }}"
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          View Report
+                        </a>
+                        {% else %}
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          N/A
+                        </p>
+                        {% endif %}
+                      </div>
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Data Portal URL
+                        </p>
+                        {% if DataPortalUrl %}
+                        <a
+                          href="{{ DataPortalUrl }}"
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          {{ DataPortalUrl }}
+                        </a>
+                        {% else %}
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          N/A
+                        </p>
+                        {% endif %}
+                      </div>
+                      <div width="48%" valign="top" style="padding: 12px; margin-bottom: 4px">
+                        <p
+                          style="
+                            color: #161d26;
+                            font-family: Arial, sans-serif;
+                            font-size: 10px;
+                            margin: 0 0 5px 0;
+                          "
+                        >
+                          Teardown Test Report
+                        </p>
+                        {% if TeardownTestReportUrl %}
+                        <a
+                          href="{{ TeardownTestReportUrl }}"
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          View Report
+                        </a>
+                        {% else %}
+                        <p
+                          style="
+                            color: #043d6d;
+                            font-family: Arial, sans-serif;
+                            font-size: 12px;
+                            font-weight: bold;
+                            margin: 0;
+                          "
+                        >
+                          N/A
+                        </p>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                align="center"
+                style="padding: 20px 30px; border-top: 1px solid #eeeeee; background-color: #f7f7f7"
+              >
+                <p
+                  class="footer-text"
+                  style="
+                    color: #aaaaaa;
+                    font-family: Arial, sans-serif;
+                    font-size: 10px;
+                    line-height: 18px;
+                    margin: 0;
+                  "
+                >
+                  This is an automated report from 47Lining.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

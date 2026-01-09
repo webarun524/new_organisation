@@ -1,0 +1,79 @@
+---
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - echo "========== DATA PORTAL VERIFICATION TESTS BUILDSPEC =========="
+      - echo "Current working directory:"
+      - pwd
+      - echo "Listing CodeBuild working directory:"
+      - ls -lah
+
+      - echo "Environment variables:"
+      - env | sort
+
+      - echo "========== VERIFYING SOURCE FILES =========="
+      - echo "Listing working directory:"
+      - ls -lah
+      - echo "Verifying e2e directory exists:"
+      - test -d e2e && echo "e2e directory found!" || (echo "e2e directory NOT FOUND"; exit 1)
+
+      - echo "PIP version:"
+      - pip --version
+
+      - echo "========== CONDITIONAL CROSS-ACCOUNT AUTH =========="
+      - echo "Data Portal Verification requires cross-account access"
+      - echo "Assuming role: $CROSS_ACCOUNT_ROLE_ARN"
+      - |
+        CREDS=$(aws sts assume-role \
+          --role-arn "$CROSS_ACCOUNT_ROLE_ARN" \
+          --role-session-name "codebuild-e2e-${EXECUTION_ID}")
+        export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | python -c "import sys, json; print(json.load(sys.stdin)['Credentials']['AccessKeyId'])")
+        export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | python -c "import sys, json; print(json.load(sys.stdin)['Credentials']['SecretAccessKey'])")
+        export AWS_SESSION_TOKEN=$(echo "$CREDS" | python -c "import sys, json; print(json.load(sys.stdin)['Credentials']['SessionToken'])")
+      - echo "Fetching DP password from Secrets Manager"
+      - export DP_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "$DP_PASSWORD_ARN" --query SecretString --output text)
+      - echo "DP_PASSWORD exported successfully"
+
+      - echo "========== INSTALLING DEPENDENCIES =========="
+      - echo "Installing dependencies..."
+      - pip install -v -r e2e/requirements.txt
+      - playwright install --with-deps
+
+  build:
+    commands:
+      - echo "========== PREPARING REPORTS DIRECTORY =========="
+      - mkdir -p reports
+      - echo "Reports directory created successfully"
+      - echo "Checking test path e2e/tests/:"
+      - test -d e2e/tests/ && echo "Test directory found!" || (echo "Test directory NOT found"; find . -type d -name "tests" | head -10)
+      - echo "========== RUNNING DATA PORTAL VERIFICATION TESTS =========="
+      - echo "Adding current directory to PYTHONPATH..."
+      - export PYTHONPATH=".:${PYTHONPATH}"
+      - echo "Note: Activation was already run in previous step with 15-minute wait"
+
+      - |
+          TEST_EXIT_CODE=0
+
+          echo "Running pytest with data_portal_verification marker..."
+
+          pytest e2e/tests/ -m "data_portal_verification" -v \
+            --json-report \
+            --json-report-file=reports/report.json \
+            --json-report-indent=4 || TEST_EXIT_CODE=$?
+
+          echo "Pytest exit code: $TEST_EXIT_CODE"
+
+          echo "========== UPLOADING REPORTS TO S3 and DynamoDB =========="
+          python e2e/upload_reports.py "$EXECUTION_ID" "$REPORTS_S3_BUCKET" "data_portal_verification" "$EXECUTION_RECORD_LAMBDA_NAME"
+          echo "Reports uploaded successfully"
+
+          echo "========== DATA PORTAL VERIFICATION TESTS COMPLETED =========="
+          exit $TEST_EXIT_CODE
+
+cache:
+  paths:
+    - "/root/.cache/pip/**/*"

@@ -1,0 +1,51 @@
+[tool.commitizen]
+version = "0.34.0"
+name = "cz_customize"
+tag_format = "v$major.$minor.$patch$prerelease"
+version_scheme = "semver2"
+version_files = ["VERSION"]
+update_changelog_on_bump = "true"
+create_tag = false
+
+[tool.commitizen.customize]
+message_template = "{{type}}: {{message}}\n\n{{context}}\n\n{{jira_ticket}}\n\n{% if breaking %} BREAKING CHANGE {{breaking_change}}{% endif %}"
+schema = "<type>: <message>\n\n<context>\n\n<jira_ticket>\n\n<breaking_change>"
+schema_pattern = "^(feat|fix|chore|revert|bump)(\\(.+\\))?: .+"
+bump_pattern = "^(BREAKING CHANGE|feat|fix|chore|revert)"
+bump_map = { "fix" = "PATCH", "chore" = "PATCH", "revert" = "PATCH", "feat" = "MINOR", "BREAKING CHANGE" = "MAJOR" }
+change_type_order = ["feat", "fix", "chore", "revert"]
+
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "type"
+message = "Select the type of change:"
+choices = ["feat", "fix", "chore", "bump"]
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "message"
+message = "Write a short commit message:"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "context"
+message = "Provide additional commit context (optional):"
+default = ""
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "jira_ticket"
+message = "Enter JIRA ticket number (optional):"
+default = ""
+
+[[tool.commitizen.customize.questions]]
+type = "confirm"
+name = "breaking"
+message = "Does this commit introduce a BREAKING CHANGE? (should bump MAJOR version?)"
+default = false
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "breaking_change"
+message = "Describe the BREAKING CHANGE (leave empty if none):"
+default = ""

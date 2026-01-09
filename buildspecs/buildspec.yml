@@ -1,0 +1,14 @@
+---
+version: 0.2
+
+phases:
+
+  build:
+    commands:
+      - echo "========== RUNNING DEFAULT BUILDSPEC =========="
+      - echo "Default buildspec does not implement any tests."
+      - exit 1
+
+cache:
+  paths:
+    - "/root/.cache/pip/**/*"

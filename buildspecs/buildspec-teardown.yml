@@ -1,0 +1,71 @@
+---
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - echo "========== TEARDOWN TESTS BUILDSPEC =========="
+      - echo "Current working directory:"
+      - pwd
+      - echo "Listing CodeBuild working directory:"
+      - ls -lah
+
+      - echo "Environment variables:"
+      - env | sort
+
+      - echo "========== VALIDATING DEPLOYMENT_ID =========="
+      - |
+        if [ -z "$DEPLOYMENT_ID" ]; then
+          echo "ERROR: DEPLOYMENT_ID environment variable is required for teardown tests"
+          exit 1
+        fi
+      - echo "Using DEPLOYMENT_ID=$DEPLOYMENT_ID for teardown"
+
+      - echo "========== VERIFYING SOURCE FILES =========="
+      - echo "Listing working directory:"
+      - ls -lah
+      - echo "Verifying e2e directory exists:"
+      - test -d e2e && echo "e2e directory found!" || (echo "e2e directory NOT FOUND"; exit 1)
+
+      - echo "PIP version:"
+      - pip --version
+
+      - echo "========== INSTALLING DEPENDENCIES =========="
+      - echo "Installing dependencies..."
+      - pip install -v -r e2e/requirements.txt
+      - playwright install --with-deps
+
+  build:
+    commands:
+      - echo "========== PREPARING REPORTS DIRECTORY =========="
+      - mkdir -p reports
+      - echo "Reports directory created successfully"
+      - echo "Checking test path e2e/tests/:"
+      - test -d e2e/tests/ && echo "Test directory found!" || (echo "Test directory NOT found"; find . -type d -name "tests" | head -10)
+      - echo "========== RUNNING TEARDOWN TESTS =========="
+      - echo "Adding current directory to PYTHONPATH..."
+      - export PYTHONPATH=".:${PYTHONPATH}"
+
+      - |
+          TEST_EXIT_CODE=0
+
+          echo "Running pytest with data_portal_teardown marker..."
+
+          pytest e2e/tests/ -m "data_portal_teardown" -v \
+            --json-report \
+            --json-report-file=reports/report.json \
+            --json-report-indent=4 || TEST_EXIT_CODE=$?
+
+          echo "========== UPLOADING REPORTS TO S3 and DynamoDB =========="
+          python e2e/upload_reports.py "$EXECUTION_ID" "$REPORTS_S3_BUCKET" "data_portal_teardown" "$EXECUTION_RECORD_LAMBDA_NAME"
+          echo "Reports uploaded successfully"
+
+          echo "========== TEARDOWN TESTS COMPLETED ==========
+          exit $TEST_EXIT_CODE
+
+
+cache:
+  paths:
+    - "/root/.cache/pip/**/*"

@@ -1,0 +1,22 @@
+trusted_accounts = [
+  # proto
+  "013629988812",
+  # proto2
+  "783764579098",
+  # proto3
+  "396608783583",
+  # dev
+  "997392112313",
+  # qa
+  "724930610077",
+  # preprod
+  "787089968855",
+  # utility
+  "412594592849",
+  # edi-qa
+  "585008055989",
+  # lb-M25-fe-test-enterp (test-e2e)
+  "391767403170"
+]
+organization_id = "10c13d6c5a5a4a02b180ffe402dc436e"
+domain_name="domain.edi.internal0.dataops.47lining.com"
